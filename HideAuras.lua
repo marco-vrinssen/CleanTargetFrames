@@ -1,22 +1,28 @@
-local function HideDebuffs(frame)
+local templates = { "TargetBuffFrameTemplate", "TargetDebuffFrameTemplate" }
+
+local function HideAuraPools(frame)
     if not frame or not frame.auraPools then return end
-    local pool = frame.auraPools:GetPool("TargetDebuffFrameTemplate")
-    if not pool then return end
-    for debuff in pool:EnumerateActive() do
-        debuff:Hide()
+    for _, template in ipairs(templates) do
+        local pool = frame.auraPools:GetPool(template)
+        if pool then
+            for aura in pool:EnumerateActive() do
+                aura:Hide()
+            end
+        end
     end
 end
 
-local function HideAll()
-    HideDebuffs(TargetFrame)
-    HideDebuffs(FocusFrame)
+local hooked = {}
+local function HookFrame(frame)
+    if not frame or hooked[frame] then return end
+    hooked[frame] = true
+    hooksecurefunc(frame, "UpdateAuras", HideAuraPools)
+    HideAuraPools(frame)
 end
 
 local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
-f:RegisterEvent("PLAYER_TARGET_CHANGED")
-f:RegisterEvent("PLAYER_FOCUS_CHANGED")
-f:RegisterUnitEvent("UNIT_AURA", "target", "focus")
+f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
-    C_Timer.After(0, HideAll)
+    HookFrame(TargetFrame)
+    HookFrame(FocusFrame)
 end)
