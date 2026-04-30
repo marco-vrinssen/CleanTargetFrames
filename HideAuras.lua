@@ -7,6 +7,22 @@ local function GetAura(frame)
     return GetAuraData(frame.unit, frame.auraInstanceID)
 end
 
+local function ShouldHideBuff(data)
+    local ok, hide = pcall(function()
+        local duration = data.duration or 0
+        local isShortTerm = duration > 0 and duration <= MAX_BUFF_DURATION
+        return not (isShortTerm or data.isStealable)
+    end)
+    return ok and hide
+end
+
+local function ShouldHideDebuff(data)
+    local ok, hide = pcall(function()
+        return not data.isFromPlayerOrPlayerPet
+    end)
+    return ok and hide
+end
+
 local function FilterAuras(frame)
     if not frame or not frame.auraPools then return end
 
@@ -14,12 +30,8 @@ local function FilterAuras(frame)
     if buffPool then
         for auraFrame in buffPool:EnumerateActive() do
             local data = GetAura(auraFrame)
-            if data then
-                local duration = data.duration or 0
-                local isShortTerm = duration > 0 and duration <= MAX_BUFF_DURATION
-                if not (isShortTerm or data.isStealable) then
-                    auraFrame:Hide()
-                end
+            if data and ShouldHideBuff(data) then
+                auraFrame:Hide()
             end
         end
     end
@@ -28,7 +40,7 @@ local function FilterAuras(frame)
     if debuffPool then
         for auraFrame in debuffPool:EnumerateActive() do
             local data = GetAura(auraFrame)
-            if data and not data.isFromPlayerOrPlayerPet then
+            if data and ShouldHideDebuff(data) then
                 auraFrame:Hide()
             end
         end
